@@ -144,3 +144,4 @@ vite.config.ts.timestamp-*
 
 plugins/*
 user_config.json
+_oldbot/*

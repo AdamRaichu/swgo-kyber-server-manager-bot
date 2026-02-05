@@ -87,8 +87,9 @@ module.exports = {
     // docker run -d --name <name> <args> <image>
     // Use separate commands for display (logging) and execution (secrets)
     const secretArgs = process.env.SECRET_ARGS || "";
+    const httpSecret = require("crypto").randomUUID();
     const displayCommand = `docker run -d --name ${containerName} <CREDENTIALS> ${cleanEnv} ${cleanPorts} ${cleanVolumes} ${cleanFlags} ${imageName}`;
-    const executionCommand = `docker run -d --name ${containerName} ${secretArgs} ${cleanEnv} ${cleanPorts} ${cleanVolumes} ${cleanFlags} ${imageName}`;
+    const executionCommand = `docker run -d --name ${containerName} ${secretArgs} -e HTTP_SECRET=${httpSecret} ${cleanEnv} ${cleanPorts} ${cleanVolumes} ${cleanFlags} ${imageName}`;
 
     await interaction.reply({ content: `Starting server...\nExecuting: \`${displayCommand}\``, ephemeral: true });
 
@@ -107,7 +108,11 @@ module.exports = {
         return;
       }
       console.log(`stdout: ${stdout}`);
+      
+      interaction.client.httpSecret = httpSecret;
+      
       interaction.followUp({ content: `Server started successfully! Container ID: ${stdout.substring(0, 12)}`, ephemeral: true });
+      if (interaction.client.startPolling) interaction.client.startPolling();
     });
   },
 };

@@ -28,6 +28,7 @@ module.exports = {
         return;
       }
       interaction.followUp({ content: `Server stopped and container removed successfully.`, ephemeral: true });
+      if (interaction.client.stopPolling) interaction.client.stopPolling();
     });
   },
 };
