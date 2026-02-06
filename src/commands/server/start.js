@@ -106,16 +106,7 @@ module.exports = {
       }
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const logFile = path.join(logsDir, `docker_start_${timestamp}.log`);
       const streamLogFile = path.join(logsDir, `container_${timestamp}.log`);
-      
-      const logContent = `Command: ${displayCommand}\n\nSTDOUT:\n${stdout}\n\nSTDERR:\n${stderr}\n\nERROR:\n${error ? error.message : "None"}`;
-      
-      try {
-          fs.writeFileSync(logFile, logContent);
-      } catch (logErr) {
-          console.error(`Failed to write docker start log: ${logErr.message}`);
-      }
 
       if (error) {
         console.error(`exec error: ${error}`);
@@ -123,37 +114,17 @@ module.exports = {
         return;
       }
 
-      // Continuous Log Streaming
-      const logStream = fs.createWriteStream(streamLogFile, { flags: 'a' });
-      const processName = process.platform === 'win32' ? 'docker.exe' : 'docker';
-      const logger = spawn(processName, ['logs', '-f', containerName], {
-          detached: true,
-          stdio: ['ignore', 'pipe', 'pipe']
+      
+      // Start Persistent Log Streamer
+      const dockerLogStreamer = require('../../utils/dockerLogStreamer');
+      dockerLogStreamer.start(interaction.client, containerName);
+      
+      interaction.client.httpSecret = httpSecret;
+      
+      interaction.followUp({ 
+          content: `Server started successfully! Container ID: ${stdout.substring(0, 12)}\nContinuous logs enabled with auto-reconnect.`, 
+          ephemeral: true 
       });
-
-      const { scanLogLine } = require('../../utils/logScanner');
-      let partialLine = '';
-
-      logger.stdout.on('data', (data) => {
-          const text = data.toString();
-          logStream.write(text);
-          
-          // Process lines for the scanner
-          const lines = (partialLine + text).split(/\r?\n/);
-          partialLine = lines.pop(); // Keep the last incomplete part
-
-          for (const line of lines) {
-              scanLogLine(interaction.client, line).catch(console.error);
-          }
-      });
-
-      logger.stderr.on('data', (data) => {
-          logStream.write(data.toString());
-      });
-
-      logger.unref();
-
-      console.log(`Continuous logs streaming to ${streamLogFile} with pattern scanning enabled.`);
       
       interaction.client.httpSecret = httpSecret;
       

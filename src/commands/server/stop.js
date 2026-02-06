@@ -1,22 +1,24 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { exec } = require("child_process");
 const { logToChannel } = require("../../utils/logger");
+const dockerLogStreamer = require("../../utils/dockerLogStreamer");
 
 module.exports = {
-  data: new SlashCommandBuilder().setName("stop").setDescription("Stops and removes the game server container"),
+  data: new SlashCommandBuilder().setName("stop").setDescription("Stops the game server container"),
   async execute(interaction) {
     if (process.env.SYSADMIN_ROLE_ID && !interaction.member.roles.cache.has(process.env.SYSADMIN_ROLE_ID)) {
       return interaction.reply({ content: "You do not have permission to use this command.", ephemeral: true });
     }
 
     const containerName = process.env.CONTAINER_NAME;
-    const dockerCommand = `docker stop ${containerName} && docker rm ${containerName}`;
+    const dockerCommand = `docker stop ${containerName}`;
 
-    await interaction.reply({ content: `Stopping server...\nExecuting: \`${dockerCommand}\``, ephemeral: true });
+    await interaction.reply({ content: "Stopping server...", ephemeral: true });
 
+    // Stop log streaming
+    dockerLogStreamer.stop();
     // Log to event channel
-    // Log to event channel
-    await logToChannel(interaction.client, `User ${interaction.user.tag} stopped server.`);
+    await logToChannel(interaction.client, `User ${interaction.user.tag} stopped the server.`);
 
     exec(dockerCommand, (error, stdout, stderr) => {
       if (error) {

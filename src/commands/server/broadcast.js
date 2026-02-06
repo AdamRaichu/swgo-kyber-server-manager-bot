@@ -6,13 +6,14 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("broadcast")
     .setDescription("Broadcasts a message to the Kyber server")
-    .addStringOption((option) => option.setName("message").setDescription("The message to broadcast").setRequired(true)),
+    .addStringOption((option) => option.setName("message").setDescription("The message to broadcast").setRequired(true))
+    .addStringOption((option) => option.setName("prefix").setDescription("The prefix to use for the broadcast").setRequired(false)),
   async execute(interaction) {
     if (process.env.SYSADMIN_ROLE_ID && !interaction.member.roles.cache.has(process.env.SYSADMIN_ROLE_ID)) {
       return interaction.reply({ content: "You do not have permission to use this command.", ephemeral: true });
     }
 
-    const message = process.env.BROADCAST_MESSAGE_PREFIX + interaction.options.getString("message");
+    const message = (interaction.options.getString("prefix") ?? process.env.BROADCAST_MESSAGE_PREFIX) + " " + interaction.options.getString("message");
 
     await interaction.deferReply({ ephemeral: true });
 

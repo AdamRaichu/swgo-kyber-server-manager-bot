@@ -1,5 +1,6 @@
 const { callPlugin } = require('../utils/pluginApi');
 const { logToChannel } = require('../utils/logger');
+const dockerLogStreamer = require('../utils/dockerLogStreamer');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
@@ -54,8 +55,9 @@ module.exports = (client) => {
 
         const isRunning = await client.checkServerRunning();
         if (isRunning) {
-            console.log('Server detected running on startup. Initiating polling.');
+            console.log('Server detected running on startup. Initiating polling and log streaming.');
             client.startPolling();
+            dockerLogStreamer.start(client);
         } else {
             console.log('Server checked on startup: NOT running. Polling standby.');
         }
