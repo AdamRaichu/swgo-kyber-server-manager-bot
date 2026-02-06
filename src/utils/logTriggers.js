@@ -1,5 +1,6 @@
 const { logToChannel } = require('./logger');
 const { exec } = require("child_process");
+const { updateStatus } = require('./statusEmbed');
 
 /**
  * A map of regex patterns to handler functions for log scanning.
@@ -14,6 +15,10 @@ const triggers = [
             const serverId = matches[1];
             console.log(`[LogScanner] Detected Server ID: ${serverId}`);
             await logToChannel(client, `🌐 **Server Registered on Kyber**\nLink: https://api.prod.kyber.gg/redirect?target=join_server?server_id=${serverId}`);
+            
+            // Update Status Embed
+            const { updateStatus } = require('./statusEmbed');
+            updateStatus(client, 'ONLINE', { serverId });
         }
     },
     {
@@ -21,6 +26,7 @@ const triggers = [
       handler: async (client, matches) => {
         // 856566725890146325: adamraichu
         await logToChannel(client, `❌ **Server Crashed!** Attempting to restart...\n<@856566725890146325> maybe you should look into this.`);
+        updateStatus(client, 'STARTING');
         exec(`docker restart ${process.env.CONTAINER_NAME}`);
       }
     },

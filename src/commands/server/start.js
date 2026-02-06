@@ -68,8 +68,17 @@ module.exports = {
     const flags = interaction.fields.getTextInputValue("flagsInput") || "";
 
     // Save config
+    // Save config - Merge with existing to preserve status embed IDs
     try {
-      fs.writeFileSync(configPath, JSON.stringify({ env, ports, volumes, flags }, null, 2));
+      let currentConfig = {};
+      if (fs.existsSync(configPath)) {
+        try {
+          currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        } catch (ignored) {}
+      }
+      
+      const newConfig = { ...currentConfig, env, ports, volumes, flags };
+      fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2));
     } catch (err) {
       console.error("Error writing config file:", err);
     }
@@ -95,8 +104,11 @@ module.exports = {
     await interaction.reply({ content: `Starting server...\nExecuting: \`${displayCommand}\``, ephemeral: true });
 
     // Log to event channel
-    // Log to event channel
     await logToChannel(interaction.client, `User ${interaction.user.tag} started server with command:\n\`${displayCommand}\``);
+
+    // Update Status Embed
+    const { updateStatus } = require('../../utils/statusEmbed');
+    updateStatus(interaction.client, 'STARTING');
 
     exec(executionCommand, (error, stdout, stderr) => {
       // Ensure logs directory exists

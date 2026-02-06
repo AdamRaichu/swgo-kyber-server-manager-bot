@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
+const { logToChannel } = require("../../utils/logger");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,6 +13,7 @@ module.exports = {
     await interaction.reply({ content: "Restarting bot...", ephemeral: true });
     
     console.log(`Restart initiated by ${interaction.user.tag}`);
+    logToChannel(interaction.client, `User ${interaction.user.tag} restarted the bot.`);
     
     // Allow time for the reply to be sent
     setTimeout(() => {

@@ -60,6 +60,8 @@ module.exports = (client) => {
             dockerLogStreamer.start(client);
         } else {
             console.log('Server checked on startup: NOT running. Polling standby.');
+            const { updateStatus } = require('../utils/statusEmbed');
+            updateStatus(client, 'OFFLINE');
         }
     });
 };

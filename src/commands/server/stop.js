@@ -11,7 +11,7 @@ module.exports = {
     }
 
     const containerName = process.env.CONTAINER_NAME;
-    const dockerCommand = `docker stop ${containerName}`;
+    const dockerCommand = `docker stop ${containerName} && docker rm ${containerName}`;
 
     await interaction.reply({ content: "Stopping server...", ephemeral: true });
 
@@ -20,13 +20,19 @@ module.exports = {
     // Log to event channel
     await logToChannel(interaction.client, `User ${interaction.user.tag} stopped the server.`);
 
+    // Update Status Embed
+    const { updateStatus } = require('../../utils/statusEmbed');
+    updateStatus(interaction.client, 'STOPPING');
+
     exec(dockerCommand, (error, stdout, stderr) => {
       if (error) {
         console.error(`exec error: ${error}`);
-        interaction.followUp({ content: `Error stopping server (it might not be running):\n\`\`\`${stderr || error.message}\`\`\``, ephemeral: true });
+        interaction.followUp({ content: `Error stopping server:\n\`\`\`${stderr || error.message}\`\`\``, ephemeral: true });
         return;
       }
-      interaction.followUp({ content: `Server stopped and container removed successfully.`, ephemeral: true });
+      interaction.followUp({ content: "Server stopped successfully!", ephemeral: true });
+      
+      updateStatus(interaction.client, 'OFFLINE');
       if (interaction.client.stopPolling) interaction.client.stopPolling();
     });
   },
