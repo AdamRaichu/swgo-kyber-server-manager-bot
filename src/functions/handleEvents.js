@@ -21,10 +21,26 @@ module.exports = (client) => {
             await interaction.reply({ content: "There was an error handling this modal!", ephemeral: true });
           }
         }
+      } else if (interaction.isStringSelectMenu()) {
+        // Assume customId is the command name or starts with it
+        const commandName = interaction.customId.split('_')[0]; 
+        const command = client.commands.get(commandName);
+        if (command && command.handleSelectMenu) {
+            try {
+                await command.handleSelectMenu(interaction);
+            } catch (error) {
+                console.error(error);
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ content: "There was an error handling this selection!", ephemeral: true });
+                } else {
+                    await interaction.followUp({ content: "There was an error handling this selection!", ephemeral: true });
+                }
+            }
+        }
       }
     });
 
-    client.once("ready", () => {
+    client.once("clientReady", () => {
       console.log(`Ready! Logged in as ${client.user.tag}`);
     });
   };

@@ -4,6 +4,7 @@ const util = require("util");
 const execPromise = util.promisify(exec);
 const fs = require("fs");
 const path = require("path");
+const { logToChannel } = require("../../utils/logger");
 
 const configPath = path.join(__dirname, "../../../user_config.json");
 
@@ -94,12 +95,8 @@ module.exports = {
     await interaction.reply({ content: `Starting server...\nExecuting: \`${displayCommand}\``, ephemeral: true });
 
     // Log to event channel
-    if (process.env.EVENTLOG_CHANNEL_ID) {
-      const channel = interaction.guild.channels.cache.get(process.env.EVENTLOG_CHANNEL_ID);
-      if (channel) {
-        channel.send(`User ${interaction.user.tag} started server with command:\n\`${displayCommand}\``);
-      }
-    }
+    // Log to event channel
+    await logToChannel(interaction.client, `User ${interaction.user.tag} started server with command:\n\`${displayCommand}\``);
 
     exec(executionCommand, (error, stdout, stderr) => {
       if (error) {
@@ -112,7 +109,9 @@ module.exports = {
       interaction.client.httpSecret = httpSecret;
       
       interaction.followUp({ content: `Server started successfully! Container ID: ${stdout.substring(0, 12)}`, ephemeral: true });
-      if (interaction.client.startPolling) interaction.client.startPolling();
+      // Start polling
+    if (interaction.client.resetLastMessageId) interaction.client.resetLastMessageId();
+    if (interaction.client.startPolling) interaction.client.startPolling();
     });
   },
 };

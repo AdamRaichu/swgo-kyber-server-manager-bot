@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { exec } = require("child_process");
+const { logToChannel } = require("../../utils/logger");
 
 module.exports = {
   data: new SlashCommandBuilder().setName("stop").setDescription("Stops and removes the game server container"),
@@ -14,12 +15,8 @@ module.exports = {
     await interaction.reply({ content: `Stopping server...\nExecuting: \`${dockerCommand}\``, ephemeral: true });
 
     // Log to event channel
-    if (process.env.EVENTLOG_CHANNEL_ID) {
-      const channel = interaction.guild.channels.cache.get(process.env.EVENTLOG_CHANNEL_ID);
-      if (channel) {
-        channel.send(`User ${interaction.user.tag} stopped server.`);
-      }
-    }
+    // Log to event channel
+    await logToChannel(interaction.client, `User ${interaction.user.tag} stopped server.`);
 
     exec(dockerCommand, (error, stdout, stderr) => {
       if (error) {
