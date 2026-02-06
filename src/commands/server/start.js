@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, PermissionsBitField } = require("discord.js");
-const { exec } = require("child_process");
+const { exec, spawn } = require("child_process");
 const util = require("util");
 const execPromise = util.promisify(exec);
 const fs = require("fs");
@@ -99,19 +99,71 @@ module.exports = {
     await logToChannel(interaction.client, `User ${interaction.user.tag} started server with command:\n\`${displayCommand}\``);
 
     exec(executionCommand, (error, stdout, stderr) => {
+      // Ensure logs directory exists
+      const logsDir = path.join(__dirname, "../../../logs");
+      if (!fs.existsSync(logsDir)) {
+          fs.mkdirSync(logsDir, { recursive: true });
+      }
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const logFile = path.join(logsDir, `docker_start_${timestamp}.log`);
+      const streamLogFile = path.join(logsDir, `container_${timestamp}.log`);
+      
+      const logContent = `Command: ${displayCommand}\n\nSTDOUT:\n${stdout}\n\nSTDERR:\n${stderr}\n\nERROR:\n${error ? error.message : "None"}`;
+      
+      try {
+          fs.writeFileSync(logFile, logContent);
+      } catch (logErr) {
+          console.error(`Failed to write docker start log: ${logErr.message}`);
+      }
+
       if (error) {
         console.error(`exec error: ${error}`);
         interaction.followUp({ content: `Error starting server:\n\`\`\`${stderr || error.message}\`\`\``, ephemeral: true });
         return;
       }
-      console.log(`stdout: ${stdout}`);
+
+      // Continuous Log Streaming
+      const logStream = fs.createWriteStream(streamLogFile, { flags: 'a' });
+      const processName = process.platform === 'win32' ? 'docker.exe' : 'docker';
+      const logger = spawn(processName, ['logs', '-f', containerName], {
+          detached: true,
+          stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      const { scanLogLine } = require('../../utils/logScanner');
+      let partialLine = '';
+
+      logger.stdout.on('data', (data) => {
+          const text = data.toString();
+          logStream.write(text);
+          
+          // Process lines for the scanner
+          const lines = (partialLine + text).split(/\r?\n/);
+          partialLine = lines.pop(); // Keep the last incomplete part
+
+          for (const line of lines) {
+              scanLogLine(interaction.client, line).catch(console.error);
+          }
+      });
+
+      logger.stderr.on('data', (data) => {
+          logStream.write(data.toString());
+      });
+
+      logger.unref();
+
+      console.log(`Continuous logs streaming to ${streamLogFile} with pattern scanning enabled.`);
       
       interaction.client.httpSecret = httpSecret;
       
-      interaction.followUp({ content: `Server started successfully! Container ID: ${stdout.substring(0, 12)}`, ephemeral: true });
+      interaction.followUp({ 
+          content: `Server started successfully! Container ID: ${stdout.substring(0, 12)}\nContinuous logs: \`${path.basename(streamLogFile)}\``, 
+          ephemeral: true 
+      });
       // Start polling
-    if (interaction.client.resetLastMessageId) interaction.client.resetLastMessageId();
-    if (interaction.client.startPolling) interaction.client.startPolling();
+      if (interaction.client.resetLastMessageId) interaction.client.resetLastMessageId();
+      if (interaction.client.startPolling) interaction.client.startPolling();
     });
   },
 };
