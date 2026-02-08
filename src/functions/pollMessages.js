@@ -49,7 +49,7 @@ module.exports = (client) => {
     };
 
     // Auto-start if server is running on bot ready
-    client.once('ready', async () => {
+    client.once('clientReady', async () => {
         // Startup Logging
         await logToChannel(client, `🤖 **Bot Process Started** - Kyber Server Manager is online.`);
 

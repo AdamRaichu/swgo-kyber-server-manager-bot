@@ -143,5 +143,6 @@ vite.config.ts.timestamp-*
 
 
 plugins/*
+!plugins/.gitkeep
 user_config.json
 _oldbot/*
