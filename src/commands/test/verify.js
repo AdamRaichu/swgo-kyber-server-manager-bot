@@ -2,6 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const kyberGrpc = require("../../utils/kyberGrpc");
 const fs = require("fs");
 const path = require("path");
+const { getAuthToken } = require("../../utils/maximaBridge");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,7 +13,7 @@ module.exports = {
       return interaction.reply({ content: "You do not have permission to use this command.", ephemeral: true });
     }
 
-    const eaToken = process.env.SECRET_EA_TOKEN;
+    const eaToken = await getAuthToken();;
     if (!eaToken) {
       return interaction.reply({ content: "Error: `SECRET_EA_TOKEN` not found in environment variables.", ephemeral: true });
     }
